@@ -1,0 +1,82 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+ 
+class RaceWinner
+{
+    public string Name { get; set; }
+    public TimeSpan RaceTime { get; set; }
+    public int Position { get; set; }
+ 
+    public RaceWinner(string name, TimeSpan raceTime, int position)
+    {
+        Name = name;
+        RaceTime = raceTime;
+        Position = position;
+    }
+}
+ 
+interface ISorter<T>
+{
+    IEnumerable<T> Sort(IEnumerable<T> items, bool ascending);
+}
+ 
+class WinnerSorter : ISorter<RaceWinner>
+{
+    public IEnumerable<RaceWinner> Sort(IEnumerable<RaceWinner> items, bool ascending)
+    {
+        return ascending ? items.OrderBy(w => w.Position) : items.OrderByDescending(w => w.Position);
+    }
+}
+ 
+interface ISearcher<T>
+{
+    IEnumerable<T> Search(IEnumerable<T> items, string name);
+}
+ 
+class WinnerSearcher : ISearcher<RaceWinner>
+{
+    public IEnumerable<RaceWinner> Search(IEnumerable<RaceWinner> items, string name)
+    {
+        List<RaceWinner> result = new List<RaceWinner>();
+        foreach (var winner in items)
+        {
+            if (winner.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                result.Add(winner);
+            }
+        }
+        return result;
+    }
+}
+ 
+class Program
+{
+    public static void Main(string[] args)
+    {
+        List<RaceWinner> raceWinners = new List<RaceWinner>
+        {
+            new RaceWinner("Иванов Иван", TimeSpan.FromMinutes(1.30), 1),
+            new RaceWinner("Петров Петр", TimeSpan.FromMinutes(1.45), 2),
+            new RaceWinner("Сидоров Василий", TimeSpan.FromMinutes(1.50), 3)
+        };
+ 
+        ISorter<RaceWinner> sorter = new WinnerSorter();
+        var sortedWinners = sorter.Sort(raceWinners, true);
+ 
+        Console.WriteLine("Сортировка по месту (возрастание):");
+        foreach (var winner in sortedWinners)
+        {
+            Console.WriteLine($"{winner.Position}: {winner.Name} - {winner.RaceTime}");
+        }
+ 
+        ISearcher<RaceWinner> searcher = new WinnerSearcher();
+        var searchResult = searcher.Search(raceWinners, "Alice");
+ 
+        Console.WriteLine("\nРезультат поиска по имени 'Alice':");
+        foreach (var winner in searchResult)
+        {
+            Console.WriteLine($"{winner.Position}: {winner.Name} - {winner.RaceTime}");
+        }
+    }
+}
