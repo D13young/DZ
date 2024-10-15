@@ -71,9 +71,9 @@ class Program
         }
  
         ISearcher<RaceWinner> searcher = new WinnerSearcher();
-        var searchResult = searcher.Search(raceWinners, "Alice");
+        var searchResult = searcher.Search(raceWinners, "Петров Петр");
  
-        Console.WriteLine("\nРезультат поиска по имени 'Alice':");
+        Console.WriteLine("\nРезультат поиска по имени 'Петров Петр':");
         foreach (var winner in searchResult)
         {
             Console.WriteLine($"{winner.Position}: {winner.Name} - {winner.RaceTime}");
