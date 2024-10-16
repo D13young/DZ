@@ -1,82 +1,144 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
- 
-class RaceWinner
+abstract class FileSystemItem
 {
-    public string Name { get; set; }
-    public TimeSpan RaceTime { get; set; }
-    public int Position { get; set; }
- 
-    public RaceWinner(string name, TimeSpan raceTime, int position)
+    protected string name;
+    protected bool isHidden;
+
+    public FileSystemItem(string name, bool isHidden)
     {
-        Name = name;
-        RaceTime = raceTime;
-        Position = position;
+        this.name = name;
+        this.isHidden = isHidden;
     }
+
+    public abstract string GetSize();
+    public abstract void DisplayInfo();
 }
- 
-interface ISorter<T>
+
+class DirectoryItem : FileSystemItem
 {
-    IEnumerable<T> Sort(IEnumerable<T> items, bool ascending);
-}
- 
-class WinnerSorter : ISorter<RaceWinner>
-{
-    public IEnumerable<RaceWinner> Sort(IEnumerable<RaceWinner> items, bool ascending)
+    private DirectoryInfo directoryInfo;
+
+    public DirectoryItem(string path) : base(new DirectoryInfo(path).Name, new DirectoryInfo(path).Attributes.HasFlag(FileAttributes.Hidden))
     {
-        return ascending ? items.OrderBy(w => w.Position) : items.OrderByDescending(w => w.Position);
+        directoryInfo = new DirectoryInfo(path);
     }
-}
- 
-interface ISearcher<T>
-{
-    IEnumerable<T> Search(IEnumerable<T> items, string name);
-}
- 
-class WinnerSearcher : ISearcher<RaceWinner>
-{
-    public IEnumerable<RaceWinner> Search(IEnumerable<RaceWinner> items, string name)
+
+    public override string GetSize()
     {
-        List<RaceWinner> result = new List<RaceWinner>();
-        foreach (var winner in items)
+        return "Папка";
+    }
+
+    public override void DisplayInfo()
+    {
+        if (isHidden)
         {
-            if (winner.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.WriteLine($"{name} - {GetSize()} (Скрытая)");
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"{name} - {GetSize()}");
+        }
+        Console.ResetColor();
+    }
+
+    public IEnumerable<FileSystemItem> GetContents()
+    {
+        // Получаем все файлы и папки, включая скрытые
+        foreach (var item in directoryInfo.GetFileSystemInfos())
+        {
+            if (item.Attributes.HasFlag(FileAttributes.Directory))
             {
-                result.Add(winner);
+                yield return new DirectoryItem(item.FullName);
+            }
+            else
+            {
+                yield return new FileItem(item.FullName);
             }
         }
-        return result;
     }
 }
- 
+
+class FileItem : FileSystemItem
+{
+    private FileInfo fileInfo;
+
+    public FileItem(string path) : base(new FileInfo(path).Name, new FileInfo(path).Attributes.HasFlag(FileAttributes.Hidden))
+    {
+        fileInfo = new FileInfo(path);
+    }
+
+    public override string GetSize()
+    {
+        return $"{fileInfo.Length / 1024.0:F2} KB";
+    }
+
+    public override void DisplayInfo()
+    {
+        if (isHidden)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"{name} - {GetSize()} (Скрытый)");
+        }
+        else if (fileInfo.Attributes.HasFlag(FileAttributes.Archive))
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"{name} - {GetSize()} (Архивный)");
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"{name} - {GetSize()}");
+        }
+
+        Console.ResetColor();
+    }
+}
+
+class FileSystemManager
+{
+    private string path;
+
+    public void SetPath(string path)
+    {
+        this.path = path;
+    }
+
+    public void DisplayDirectoryContents()
+    {
+        try
+        {
+            DirectoryItem directory = new DirectoryItem(path);
+
+            if (!Directory.Exists(path))
+            {
+                Console.WriteLine("Указанная директория не существует.");
+                return;
+            }
+
+            Console.WriteLine($"Содержимое директории: {directory.GetSize()}");
+
+            foreach (var item in directory.GetContents())
+            {
+                item.DisplayInfo();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+    }
+}
+
 class Program
 {
-    public static void Main(string[] args)
+    static void Main(string[] args)
     {
-        List<RaceWinner> raceWinners = new List<RaceWinner>
-        {
-            new RaceWinner("Иванов Иван", TimeSpan.FromMinutes(1.30), 1),
-            new RaceWinner("Петров Петр", TimeSpan.FromMinutes(1.45), 2),
-            new RaceWinner("Сидоров Василий", TimeSpan.FromMinutes(1.50), 3)
-        };
- 
-        ISorter<RaceWinner> sorter = new WinnerSorter();
-        var sortedWinners = sorter.Sort(raceWinners, true);
- 
-        Console.WriteLine("Сортировка по месту (возрастание):");
-        foreach (var winner in sortedWinners)
-        {
-            Console.WriteLine($"{winner.Position}: {winner.Name} - {winner.RaceTime}");
-        }
- 
-        ISearcher<RaceWinner> searcher = new WinnerSearcher();
-        var searchResult = searcher.Search(raceWinners, "Петров Петр");
- 
-        Console.WriteLine("\nРезультат поиска по имени 'Петров Петр':");
-        foreach (var winner in searchResult)
-        {
-            Console.WriteLine($"{winner.Position}: {winner.Name} - {winner.RaceTime}");
-        }
+        Console.Write("Введите путь: ");
+        string path = Console.ReadLine();
+
+        FileSystemManager manager = new FileSystemManager();
+        manager.SetPath(path);
+        manager.DisplayDirectoryContents();
     }
 }
