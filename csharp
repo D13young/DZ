@@ -10,7 +10,7 @@ abstract class FileSystemItem
     }
 
     public abstract string GetSize();
-    public abstract void DisplayInfo();
+    public abstract void GetInfo();
 }
 
 class DirectoryItem : FileSystemItem
@@ -27,7 +27,7 @@ class DirectoryItem : FileSystemItem
         return "Папка";
     }
 
-    public override void DisplayInfo()
+    public override void GetInfo()
     {
         if (isHidden)
         {
@@ -73,7 +73,7 @@ class FileItem : FileSystemItem
         return $"{fileInfo.Length / 1024.0:F2} KB";
     }
 
-    public override void DisplayInfo()
+    public override void GetInfo()
     {
         if (isHidden)
         {
@@ -104,7 +104,7 @@ class FileSystemManager
         this.path = path;
     }
 
-    public void DisplayDirectoryContents()
+    public void DirectoryContents()
     {
         try
         {
@@ -120,7 +120,7 @@ class FileSystemManager
 
             foreach (var item in directory.GetContents())
             {
-                item.DisplayInfo();
+                item.GetInfo();
             }
         }
         catch (Exception ex)
@@ -139,6 +139,6 @@ class Program
 
         FileSystemManager manager = new FileSystemManager();
         manager.SetPath(path);
-        manager.DisplayDirectoryContents();
+        manager.DirectoryContents();
     }
 }
